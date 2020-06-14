@@ -1,6 +1,6 @@
 # This is a script to read satellite data from NetCDF-4 file
 # and generate 'contour plots'. It plots contour of
-# temperature with earth-altitude on the Y-axis and
+# temperature with 'earth-altitude' on the Y-axis and
 # latitude or longitude on the X-axis
 # This program is interesting because it generates 2-D histogram
 
@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import os, sys
 
 # A global variable for convenience
-figcount = randrange(999);
+figcount = randrange(999)
 
 # This function reads NetCDF data file and return 4 arrays in a tuple:
 # (latitude, longitude, altitude, temperature)
@@ -66,7 +66,7 @@ def listAllNetCDFInDir(dirname):
 # Z is another 1-D array. Each point in Z is a function
 # of the corresponding points in X and Y
 def plotHistogramContour(X, Y, Z, xlabel="",ylabel=""):
-    # Number of bins in the histogram
+    # Number of bins in each axis in the histogram
     bins = 40
 
     # Range of x and y-axis, respectively
@@ -80,25 +80,27 @@ def plotHistogramContour(X, Y, Z, xlabel="",ylabel=""):
     N, xedges, yedges = np.histogram2d(X, Y, bins=(bins, bins*5), range=r, weights=None)
     # Some sanity check and finally taking the average of temperatures
     H = ma.masked_less(H, 100)
-    S = ma.divide(H, N, where=N>0)
+    S = ma.divide(H, N, where=N>0)      # S is average temperature as each (X,Y)
     S = ma.masked_greater(S, 300)
     #print('H: ', H)
     #print('N: ', N)
-    #print("Shape of S: ", np.shape(S), " max: ", np.max(S), " min: ", np.min(S))
     #print('S: ', S)
+    #print("Shape of S: ", np.shape(S), " max: ", np.max(S), " min: ", np.min(S))
 
     # We had 'buckets' in the histogram for x and y-axis,
-    # but we need a 'single value' for each bucket. We average them.
+    # but we need a 'single value' for each bucket. We take their midpoint.
     ## Using list comprehension :)
     xpoints = [(xedges[i]+xedges[i+1])/2.0 for i in range(len(xedges)-1)]
     ypoints = [(yedges[i]+yedges[i+1])/2.0 for i in range(len(yedges)-1)]
+
     # Standard for plotting contour, create a meshgrid
     (P,Q) = np.meshgrid(xpoints, ypoints)
     plt.figure(figsize=(9,9))
     # The contour lines at the following temperature will be labeled
-    V = (140, 180, 200, 220, 240, 260, 280);
+    V = (140, 180, 200, 220, 240, 260, 280)
     # Plot a line contour
     contours = plt.contour(P, Q, S.T, V, colors='0.20', corner_mask=True)
+    # We use transpose of S as S.T because that's what histogram2d() returns
     # Plot a filled contour
     plt.contourf(P, Q, S.T, 128, cmap=plt.cm.jet)
     plt.clabel(contours, inline=True, fontsize=8)
@@ -120,7 +122,7 @@ def plotHistogramContour(X, Y, Z, xlabel="",ylabel=""):
 
 # Main program starts here
 
-datadirectory = 'data-jun-8-2020'  # default data directory
+datadirectory = '.'  # default data directory is current working directory
 # Process command line input for data-source directory
 if(len(sys.argv) == 2):
     datadirectory = sys.argv[1]
@@ -151,16 +153,17 @@ latitudes = ma.concatenate(latilist)
 longitudes = ma.concatenate(longilist)
 altitudes = ma.concatenate(altilist)
 temperatures = ma.concatenate(templist)
-print('Total data-points: ', len(temperatures), '\tTemp-max: ', np.max(temperatures), '  Temp-min: ', np.min(temperatures))
+print('Total data-points: ', len(temperatures),
+      '\tTemp-max: ', np.max(temperatures), '  Temp-min: ', np.min(temperatures))
 
 # We plot 3 arrays. We only count data-points which are valid in all 3 of them
 # We get the array-mask and 'OR' them to find common masked values
-# And we explicitl mask it in all three arrays (four actually)
-genmask = ma.getmask(latitudes) | ma.getmask(longitudes) | ma.getmask(temperatures) | ma.getmask(altitudes)
-latitudes[genmask] = ma.masked
-altitudes[genmask] = ma.masked
-longitudes[genmask] = ma.masked
-temperatures[genmask] = ma.masked
+# And we explicitly mask it in all three arrays (four actually)
+commonmask = ma.getmask(latitudes) | ma.getmask(longitudes) | ma.getmask(temperatures) | ma.getmask(altitudes)
+latitudes[commonmask] = ma.masked
+altitudes[commonmask] = ma.masked
+longitudes[commonmask] = ma.masked
+temperatures[commonmask] = ma.masked
 
 # Get rid of the invalid masked values. The array is compressed with only valid entries.
 latitudes = ma.compressed(latitudes)
