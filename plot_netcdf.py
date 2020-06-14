@@ -97,7 +97,7 @@ def plotHistogramContour(X, Y, Z, xlabel="",ylabel=""):
     (P,Q) = np.meshgrid(xpoints, ypoints)
     plt.figure(figsize=(9,9))
     # The contour lines at the following temperature will be labeled
-    V = (140, 180, 200, 220, 240, 260, 280)
+    V = (140, 160, 180, 200, 220, 240, 260, 280)
     # Plot a line contour
     contours = plt.contour(P, Q, S.T, V, colors='0.20', corner_mask=True)
     # We use transpose of S as S.T because that's what histogram2d() returns
