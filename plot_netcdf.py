@@ -87,8 +87,13 @@ def plotHistogramContour(X, Y, Z, xlabel="",ylabel=""):
     #print("Shape of S: ", np.shape(S), " max: ", np.max(S), " min: ", np.min(S))
     #print('S: ', S)
 
+    # We had 'buckets' in the histogram for x and y-axis,
+    # but we need a 'single value' for each bucket. We average them.
+    ## Using list comprehension :)
+    xpoints = [(xedges[i]+xedges[i+1])/2.0 for i in range(len(xedges)-1)]
+    ypoints = [(yedges[i]+yedges[i+1])/2.0 for i in range(len(yedges)-1)]
     # Standard for plotting contour, create a meshgrid
-    (P,Q) = np.meshgrid(xedges[:-1], yedges[:-1])
+    (P,Q) = np.meshgrid(xpoints, ypoints)
     plt.figure(figsize=(9,9))
     # The contour lines at the following temperature will be labeled
     V = (140, 180, 200, 220, 240, 260, 280);
@@ -119,7 +124,10 @@ datadirectory = 'data-jun-8-2020'  # default data directory
 # Process command line input for data-source directory
 if(len(sys.argv) == 2):
     datadirectory = sys.argv[1]
-figcount = -1;
+
+# Figure file number-if you want to save contour plot as a EPS file
+# -1 indicates file will not be saved
+figcount = -1
 
 # Search for NetCDF files (*.nc) in the data source
 datafilenames = listAllNetCDFInDir(datadirectory)
@@ -127,7 +135,7 @@ latilist = []
 longilist = []
 altilist = []
 templist = []
-f_lati = []
+
 # Read data from each file, we only need 4 variables
 # Each variable is reshaped as a simple 1-D array
 for file in datafilenames:
@@ -139,28 +147,28 @@ for file in datafilenames:
 
 # All the stored 1-D arrays from each file are concatenated
 # For each variable, we have one very long 1-D array
-f_lati = ma.concatenate(latilist)
-f_longi = ma.concatenate(longilist)
-f_alti = ma.concatenate(altilist)
-f_temp = ma.concatenate(templist)
-print('Total data-points: ', len(f_temp), '\tTemp-max: ', np.max(f_temp), '  Temp-min: ', np.min(f_temp))
+latitudes = ma.concatenate(latilist)
+longitudes = ma.concatenate(longilist)
+altitudes = ma.concatenate(altilist)
+temperatures = ma.concatenate(templist)
+print('Total data-points: ', len(temperatures), '\tTemp-max: ', np.max(temperatures), '  Temp-min: ', np.min(temperatures))
 
 # We plot 3 arrays. We only count data-points which are valid in all 3 of them
 # We get the array-mask and 'OR' them to find common masked values
 # And we explicitl mask it in all three arrays (four actually)
-genmask = ma.getmask(f_longi) | ma.getmask(f_temp) | ma.getmask(f_alti)
-f_lati[genmask] = ma.masked;
-f_alti[genmask] = ma.masked;
-f_longi[genmask] = ma.masked;
-f_temp[genmask] = ma.masked;
+genmask = ma.getmask(latitudes) | ma.getmask(longitudes) | ma.getmask(temperatures) | ma.getmask(altitudes)
+latitudes[genmask] = ma.masked
+altitudes[genmask] = ma.masked
+longitudes[genmask] = ma.masked
+temperatures[genmask] = ma.masked
 
-# Get read on the invalid masked values. The array is compressed with only valid entries.
-f_lati = ma.compressed(f_lati)
-f_alti = ma.compressed(f_alti)
-f_longi = ma.compressed(f_longi)
-f_temp = ma.compressed(f_temp)
+# Get rid of the invalid masked values. The array is compressed with only valid entries.
+latitudes = ma.compressed(latitudes)
+altitudes = ma.compressed(altitudes)
+longitudes = ma.compressed(longitudes)
+temperatures = ma.compressed(temperatures)
 
 # Plot a contour of the 2-D histogram of given data
-plotHistogramContour(f_lati, f_alti, f_temp, "Latitude", "Altitude")
-plotHistogramContour(f_longi, f_alti, f_temp, "Longitude", "Altitude")
+plotHistogramContour(latitudes, altitudes, temperatures, "Latitude", "Altitude")
+plotHistogramContour(longitudes, altitudes, temperatures, "Longitude", "Altitude")
 plt.show()
